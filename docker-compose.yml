@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  order-service:
+    build:
+      context: .
+      dockerfile: OrderService/Dockerfile
+    container_name: nom_nom_order
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    restart: always
+    networks:
+      - nom-nom-cinema-backend
+    env_file:
+      - .env
+
+  buffet-service:
+    build:
+      context: .
+      dockerfile: BuffetService/Dockerfile
+    container_name: nom_nom_buffet
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: always
+    networks:
+      - nom-nom-cinema-backend
+
+  mongo:
+    image: mongo:latest
+    container_name: nom_nom_mongo
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DB_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_DB_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.runCommand('ping').ok" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: always
+    networks:
+      - nom-nom-cinema-backend
+
+  kafka:
+    image: apache/kafka:latest
+    container_name: nom_nom_kafka
+    environment:
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://nom_nom_kafka:9092,CONTROLLER://nom_nom_kafka:9093
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@nom_nom_kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_MODE: KRAFT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1" ]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 50s
+    restart: always
+    networks:
+      - nom-nom-cinema-backend
+
+networks:
+  nom-nom-cinema-backend:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  kafka_data:
