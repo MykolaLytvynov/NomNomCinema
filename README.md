@@ -11,7 +11,7 @@ NomNomCinema is a **multi-module microservices application** allowing cinema vie
 - **SLF4J & Logback** (Logging)
 
 ## Features
-- **Order Service**: Handles food and drink orders from users and stores them in **MongoDB**.
+- **Order Service**: Handles food and drink orders from users, stores them in **MongoDB**, and sends them to Kafka..
 - **Buffet Service**: Processes orders from **Kafka** and generates **receipts**.
 - **Common Module**: Contains shared models and configurations used across microservices, ensuring consistency and reducing code duplication.
 - **Logging**: Key actions, such as receiving orders, saving them to the database, and sending messages to Kafka, are logged for better traceability and debugging.
